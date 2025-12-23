@@ -3,33 +3,47 @@
 import { UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/context/toast-context";
+import { DocumentData } from "@/types/common.types";
+import { createDocumentObject } from "@/lib/helper/document";
 
-export default function UploadButton() {
+function formatBytes(bytes: number) {
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+interface UploadButtonProps {
+  onUploadComplete: (doc: DocumentData) => void;
+}
+
+export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
   const { addToast } = useToast();
 
   const handleUpload = () => {
-    // Simulate upload trigger
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pdf";
+
     input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-            addToast(`Uploading ${file.name}...`, "info");
-            // Here you would normally upload the file
-            setTimeout(() => {
-                addToast("Document uploaded successfully", "success");
-            }, 2000);
-        }
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      addToast(`Uploading ${file.name}...`, "info");
+
+      // Simulate upload
+      setTimeout(() => {
+        const documentObject: DocumentData = createDocumentObject(file);
+        console.log(documentObject,"documentObject");
+       onUploadComplete(documentObject);
+        addToast("Document uploaded successfully", "success");
+      }, 2000);
     };
+
     input.click();
   };
 
   return (
-    <Button 
-        onClick={handleUpload} 
-        size="lg" 
-        className="shadow-lg shadow-blue-500/20 cursor-pointer"
+    <Button
+      onClick={handleUpload}
+      size="lg"
+      className="shadow-lg shadow-blue-500/20 cursor-pointer"
     >
       <UploadCloud className="mr-2 h-5 w-5" />
       Upload Lease Agreement

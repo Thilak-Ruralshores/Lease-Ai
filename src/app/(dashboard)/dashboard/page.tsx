@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { DUMMY_DOCUMENTS, INITIAL_KEYWORDS, DocumentData } from "@/lib/dummy-data";
+import { DocumentData } from "@/types/common.types";
+import { DUMMY_DOCUMENTS, INITIAL_KEYWORDS } from "@/lib/dummy-data";
 import DocumentCard from "@/components/dashboard/document-card";
 import UploadButton from "@/components/dashboard/upload-button";
 import KeywordSection from "@/components/dashboard/keyword-section";
@@ -55,6 +56,11 @@ export default function DashboardPage() {
     );
   }, [documents, searchQuery]);
 
+  const handleNewDocument = (document: DocumentData) => {
+    setDocuments(prev => [...prev, document]);
+    addToast(`"${document.name}" has been uploaded`, "success");
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <section className="flex flex-col md:flex-row gap-6 items-start justify-between">
@@ -66,7 +72,7 @@ export default function DashboardPage() {
             Manage and analyze your lease agreements
           </p>
         </div>
-        <UploadButton />
+        <UploadButton onUploadComplete={handleNewDocument} />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

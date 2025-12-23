@@ -1,13 +1,5 @@
-export type DocumentStatus = "processing" | "ready" | "failed";
+import { DocumentData } from "../types/common.types";
 // Force refresh
-
-export interface DocumentData {
-  id: string;
-  name: string;
-  uploadedAt: string;
-  status: DocumentStatus;
-  size: string;
-}
 
 export interface ExtractionData {
   field: string;
