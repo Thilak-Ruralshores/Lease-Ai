@@ -7,3 +7,4 @@ export interface DocumentData {
   status: DocumentStatus;
   size: string;
 }
+

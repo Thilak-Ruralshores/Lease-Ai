@@ -16,27 +16,42 @@ interface UploadButtonProps {
 export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
   const { addToast } = useToast();
 
-  const handleUpload = () => {
+  const handleUpload = async() => {
+    try{
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pdf";
-
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-
+      const formData=new FormData();
+      formData.append('file',file);
       addToast(`Uploading ${file.name}...`, "info");
-
+      const res=await fetch('/api/upload',{
+             method:'POST',
+             body: formData,
+           })
+      if(!res.ok){
+        addToast(`Upload failed: ${res.statusText}`, "error");
+        return;
+      }
+      const {embeddedChunks}=await res.json();
+      console.log(embeddedChunks,"Embedded chunks from upload button");
       // Simulate upload
       setTimeout(() => {
         const documentObject: DocumentData = createDocumentObject(file);
-        console.log(documentObject,"documentObject");
+        // console.log(documentObject,"documentObject");
        onUploadComplete(documentObject);
         addToast("Document uploaded successfully", "success");
       }, 2000);
+    }
+    input.click();
+  }catch (error) {
+      console.error("Upload failed:", error);
+      addToast("Failed to upload document", "error");
     };
 
-    input.click();
+    
   };
 
   return (
