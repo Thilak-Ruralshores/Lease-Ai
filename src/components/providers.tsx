@@ -6,14 +6,14 @@ import { ToastProvider } from "@/context/toast-context";
 import { KeywordProvider } from "@/context/keyword-context";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <KeywordProvider>
-    <AuthProvider>
-      <ThemeProvider>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-      </ThemeProvider>
-    </AuthProvider>
-    </KeywordProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <KeywordProvider>
+            {children}
+          </KeywordProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

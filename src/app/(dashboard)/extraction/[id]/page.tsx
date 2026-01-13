@@ -22,9 +22,12 @@ export default function ExtractionPage() {
   const [selectedField, setSelectedField] = useState<ExtractionData | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
 
-    const { activeKeywords } = useKeywords();
+    const { getSelectedKeywordsForDoc, keywords } = useKeywords();
 
     useEffect(() => {
+    // Get keywords for this specific document
+    const docKeywords = getSelectedKeywordsForDoc(id);
+    
     // Determine source data
     let sourceData: ExtractionData[] = [];
     if (DUMMY_EXTRACTIONS[id]) {
@@ -85,12 +88,13 @@ export default function ExtractionPage() {
       };
     };
 
-    // Generate full list based on activeKeywords from Context (preserves order)
-    const fullData: ExtractionData[] = activeKeywords.map(k => {
-      if (dataMap.has(k.text)) {
-        return dataMap.get(k.text)!;
+    // Generate full list based on document-specific keywords (preserves order)
+    const fullData: ExtractionData[] = docKeywords.map(k => {
+      const keywordText = k.keyword;
+      if (dataMap.has(keywordText)) {
+        return dataMap.get(keywordText)!;
       }
-      return generateDummyData(k.text);
+      return generateDummyData(keywordText);
     });
 
     setData(fullData);
@@ -98,7 +102,7 @@ export default function ExtractionPage() {
     const doc = DUMMY_DOCUMENTS.find((d: { id: string }) => d.id === id);
     if(doc) setDocument(doc);
 
-  }, [id, activeKeywords]);
+  }, [id, getSelectedKeywordsForDoc, keywords]);
 
   const handleEdit = (field: ExtractionData) => {
     setSelectedField(field);

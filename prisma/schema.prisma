@@ -1,0 +1,22 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Keywords {
+  id         String     @id @default(cuid())
+  keyword    String
+  category   String
+  isCustom   Boolean    @default(false)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+

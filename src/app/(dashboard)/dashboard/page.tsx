@@ -6,11 +6,14 @@ import { DocumentData } from "@/types/common.types";
 import { DUMMY_DOCUMENTS, INITIAL_KEYWORDS } from "@/lib/dummy-data";
 import DocumentCard from "@/components/dashboard/document-card";
 import UploadButton from "@/components/dashboard/upload-button";
-import KeywordSection from "@/components/dashboard/keyword-section";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
-import { Search } from "lucide-react";
+import { Search, Settings2, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/context/toast-context";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Keyword } from "@/context/keyword-context";
+import { useKeywords } from "@/context/keyword-context";
 
 const PAGE_SIZE = 6;
 
@@ -20,7 +23,8 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [loadMoreRef, isIntersecting] = useIntersectionObserver();
-  const { addToast } = useToast();
+   const { activeKeywords, activeCount } = useKeywords();
+   const { addToast } = useToast();
 
   // Simulate initial fetch
   useEffect(() => {
@@ -75,8 +79,7 @@ export default function DashboardPage() {
         <UploadButton onUploadComplete={handleNewDocument} />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6">
           <div className="relative">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
              <Input 
@@ -87,7 +90,7 @@ export default function DashboardPage() {
              />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              <AnimatePresence mode="popLayout">
               {filteredDocuments.map((doc, index) => (
                 <DocumentCard 
@@ -115,18 +118,6 @@ export default function DashboardPage() {
                </div>
              )}
            </div>
-        </div>
-
-        <div className="space-y-6">
-           <KeywordSection />
-           
-           <div className="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-                <h3 className="font-semibold text-lg mb-2">Pro Tip</h3>
-                <p className="text-indigo-100 text-sm">
-                    You can customize extraction keywords to get specific data points from your lease agreements.
-                </p>
-           </div>
-        </div>
       </div>
     </div>
   );

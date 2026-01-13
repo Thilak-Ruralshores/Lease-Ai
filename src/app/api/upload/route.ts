@@ -44,19 +44,7 @@ export async function POST(req: NextRequest) {
     const summarizedChunks = await summarizeChunks(chunks);
     // ---------- EMBED (TEXT + SUMMARY) ----------
     const embeddedChunks = await embedChunks(summarizedChunks);
-    // Chunk
-    // const chunks = await chunkFile(parsedDocs)
-    // if (!chunks || chunks.length === 0) {
-    //   return NextResponse.json({ error: "File produced no chunks" }, { status: 400 })
-    // }
-    // Embed
-    // const embeddings = await embedWithOpenAI(chunks)
-    // if (!embeddings) {
-    //   return NextResponse.json({ error: "Embedding failed" }, { status: 500 })
-    // }
-    // const documentId = randomUUID();
-    // const documentName = file.name;
-
+    
     //      await storeEmbeddings({
     //       chunks,
     //   embeddings,

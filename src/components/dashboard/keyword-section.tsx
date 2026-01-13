@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { categoryColors, cn } from "@/lib/utils";
 import { useKeywords, CATEGORIES, Keyword } from "@/context/keyword-context";
+import { useToast } from "@/context/toast-context";
 type CheckboxState = "checked" | "unchecked" | "indeterminate";
 // Custom Checkbox Component for 3 states
 const TriStateCheckbox = ({ 
@@ -46,11 +47,13 @@ const TriStateCheckbox = ({
   );
 };
 
-export default function KeywordSection() {
+export default function KeywordSection({ isFullPage = false }: { isFullPage?: boolean }) {
   const { 
     keywords, 
     activeKeywords, 
     activeCount, 
+    isLoading,
+    allCategories,
     toggleKeyword, 
     toggleCategory, 
     resetKeywords, 
@@ -58,10 +61,20 @@ export default function KeywordSection() {
     getCategoryState 
   } = useKeywords();
 
+  const { addToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [newKeyword, setNewKeyword] = useState("");
-  const [selectedCustomCategory, setSelectedCustomCategory] = useState<string>(CATEGORIES[0]);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set()); // Collapsed by default
+  const [selectedCustomCategory, setSelectedCustomCategory] = useState<string>(allCategories[0] || "");
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Update selected category if allCategories changes and current selection is missing
+  useEffect(() => {
+    if (!selectedCustomCategory && allCategories.length > 0) {
+      setSelectedCustomCategory(allCategories[0]);
+    }
+  }, [allCategories, selectedCustomCategory]);
 
   const toggleExpand = (category: string) => {
     const newSet = new Set(expandedCategories);
@@ -73,29 +86,48 @@ export default function KeywordSection() {
     setExpandedCategories(newSet);
   };
 
-  const handleAddCustom = () => {
-    if (newKeyword.trim()) {
-      addCustomKeyword(newKeyword.trim(), selectedCustomCategory);
-      setNewKeyword("");
+  const handleAddCustom = async () => {
+    const categoryToUse = isAddingNewCategory ? newCategoryName.trim() : selectedCustomCategory;
+    
+    if (!newKeyword.trim()) return;
+    if (!categoryToUse) return;
+
+    if (isAddingNewCategory) {
+      // Check if category already exists in allCategories (case-insensitive)
+      const existingCat = allCategories.find(c => c.toLowerCase() === categoryToUse.toLowerCase());
+      if (existingCat) {
+        if (existingCat !== categoryToUse) {
+          addToast(`Category exists with different casing: "${existingCat}". Please select it from the list.`, "error");
+        } else {
+          addToast("Category already exists. Please select it from the list.", "error");
+        }
+        return;
+      }
+    }
+
+    await addCustomKeyword(newKeyword.trim(), categoryToUse);
+    setNewKeyword("");
+    if (isAddingNewCategory) {
+      setIsAddingNewCategory(false);
+      setNewCategoryName("");
+      // select the newly added category for next time? (Actually it will be in the list now)
+      setSelectedCustomCategory(categoryToUse);
     }
   };
 
   // Filter categories and keywords based on search
   const filteredData = useMemo(() => {
-    if (!searchQuery) return { categories: CATEGORIES, keywords };
+    if (!searchQuery) return { categories: allCategories, keywords };
     
-    // If search active, find keywords matching or categories matching
     const lowerQuery = searchQuery.toLowerCase();
-    
-    // We want to show a category if it matches query OR if it has keywords that match query
-    const matchingCategories = CATEGORIES.filter(cat => {
+    const matchingCategories = allCategories.filter(cat => {
       const catMatch = cat.toLowerCase().includes(lowerQuery);
-      const hasKeywordMatch = keywords.some(k => k.category === cat && k.text.toLowerCase().includes(lowerQuery));
+      const hasKeywordMatch = keywords.some(k => k.category === cat && k.keyword.toLowerCase().includes(lowerQuery));
       return catMatch || hasKeywordMatch;
     });
 
     return { categories: matchingCategories, keywords };
-  }, [keywords, searchQuery]);
+  }, [keywords, searchQuery, allCategories]);
 
   // Group keywords by category for rendering
   const keywordsByCategory = useMemo(() => {
@@ -108,13 +140,26 @@ export default function KeywordSection() {
   }, [keywords]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col max-h-[800px]">
+    <div className={cn(
+        "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col relative",
+        isFullPage ? "min-h-[600px]" : "max-h-[800px]"
+    )}>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-xl">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Loading keywords...</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="p-5 border-b border-slate-100 dark:border-slate-800 space-y-4">
+      <div className="p-5 border-b border-slate-100 dark:border-slate-800 space-y-4 text-slate-950 dark:text-slate-100">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">Extraction Keywords</h3>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={resetKeywords} className="text-xs h-7 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" onClick={resetKeywords} className="text-xs h-7 text-muted-foreground hover:text-foreground cursor-pointer">
               <RotateCcw className="w-3 h-3 mr-1" />
               Reset
             </Button>
@@ -159,9 +204,9 @@ export default function KeywordSection() {
                      categoryColors[k.category] || "bg-white border-slate-200"
                    )}
                  >
-                   {k.text}
+                   {k.keyword}
                    <button
-                     onClick={() => toggleKeyword(k.id,k.isActive ? "unchecked" : "checked")}
+                     onClick={() => toggleKeyword(k.id, "unchecked")}
                      className="p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                    >
                      <X className="w-3 h-3" />
@@ -174,7 +219,7 @@ export default function KeywordSection() {
       )}
 
       {/* Warning if 0 active */}
-      {activeCount === 0 && (
+      {activeCount === 0 && !isLoading && (
         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 flex items-start gap-3 border-b border-amber-100 dark:border-amber-900/30">
           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="text-sm text-amber-800 dark:text-amber-300">
@@ -191,11 +236,11 @@ export default function KeywordSection() {
         <div className="p-4 space-y-3">
           {filteredData.categories.map(category => {
             const catKeywords = keywordsByCategory[category]?.filter(k => 
-                !searchQuery || k.text.toLowerCase().includes(searchQuery.toLowerCase())
+                !searchQuery || k.keyword.toLowerCase().includes(searchQuery.toLowerCase())
             ) || [];
             
             if (catKeywords.length === 0 && searchQuery) return null;
-            if (!keywordsByCategory[category]) return null;
+            if (catKeywords.length === 0 && !allCategories.includes(category)) return null;
 
             return (
               <div key={category} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm">
@@ -247,7 +292,7 @@ export default function KeywordSection() {
                                 ? "bg-blue-50/50 dark:bg-blue-900/10" 
                                 : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                             )}
-                            onClick={() => toggleKeyword(keyword.id,keyword.isActive ? "checked" : "unchecked")}
+                            onClick={() => toggleKeyword(keyword.id, keyword.isActive ? "unchecked" : "checked")}
                           >
                             <TriStateCheckbox  
                                   state={keyword.isActive ?  "checked" : "unchecked"} 
@@ -258,13 +303,13 @@ export default function KeywordSection() {
                               "text-xs leading-tight",
                               keyword.isActive ? "text-slate-900 dark:text-slate-100 font-medium" : "text-slate-600 dark:text-slate-400"
                             )}>
-                              {keyword.text}
+                              {keyword.keyword}
                             </span>
                             {/* Chip indicator for active */}
                             {keyword.isActive && (
                                 <span className={cn(
                                     "ml-auto text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold opacity-60",
-                                    categoryColors[keyword.category]
+                                    categoryColors[keyword.category] || "bg-blue-100 text-blue-800"
                                 )}>
                                     Active
                                 </span>
@@ -279,7 +324,7 @@ export default function KeywordSection() {
             );
           })}
           
-          {filteredData.categories.length === 0 && (
+          {!isLoading && filteredData.categories.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
                 <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
                 <p>No matching categories found</p>
@@ -298,19 +343,52 @@ export default function KeywordSection() {
                 onChange={(e) => setNewKeyword(e.target.value)}
                 className="h-8 text-sm bg-white dark:bg-slate-950"
             />
-            <div className="flex gap-2">
+            {isAddingNewCategory ? (
+              <div className="animate-in slide-in-from-top-1 duration-200">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="New category name..."
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className="h-8 text-xs bg-white dark:bg-slate-950 flex-1"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsAddingNewCategory(false)}
+                    className="h-8 px-2 text-xs text-muted-foreground cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
                 <select 
                     className="flex-1 h-8 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs px-2"
                     value={selectedCustomCategory}
-                    onChange={(e) => setSelectedCustomCategory(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value === "ADD_NEW") {
+                        setIsAddingNewCategory(true);
+                      } else {
+                        setSelectedCustomCategory(e.target.value);
+                      }
+                    }}
                 >
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Category</option>
                 </select>
-                <Button onClick={handleAddCustom} size="sm" className="h-8 gap-1" disabled={!newKeyword.trim()}>
-                    <Plus className="w-3.5 h-3.5" />
-                    Add
-                </Button>
-            </div>
+              </div>
+            )}
+            <Button 
+                onClick={handleAddCustom} 
+                size="sm" 
+                className="h-8 gap-1 w-full cursor-pointer" 
+                disabled={!newKeyword.trim() || (isAddingNewCategory ? !newCategoryName.trim() : !selectedCustomCategory) || isLoading}
+            >
+                <Plus className="w-3.5 h-3.5" />
+                {isAddingNewCategory ? "Add Keyword to New Category" : "Add Keyword"}
+            </Button>
         </div>
       </div>
     </div>

@@ -37,13 +37,13 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
       }
       const {embeddedChunks}=await res.json();
       console.log(embeddedChunks,"Embedded chunks from upload button");
-      // Simulate upload
+      // // Simulate upload
       setTimeout(() => {
         const documentObject: DocumentData = createDocumentObject(file);
         // console.log(documentObject,"documentObject");
        onUploadComplete(documentObject);
         addToast("Document uploaded successfully", "success");
-      }, 2000);
+      }, 0);
     }
     input.click();
   }catch (error) {

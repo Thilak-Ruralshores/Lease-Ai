@@ -12,6 +12,7 @@ export default function Sidebar() {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Keywords", href: "/keywords", icon: Key },
     // { name: "My Documents", href: "/dashboard", icon: FileText },
     // { name: "Settings", href: "/settings", icon: Settings },
   ];

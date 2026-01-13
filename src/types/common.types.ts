@@ -6,5 +6,6 @@ export interface DocumentData {
   uploadedAt: string;
   status: DocumentStatus;
   size: string;
+  keywordsConfirmed?: boolean;
 }
 

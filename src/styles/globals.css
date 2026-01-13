@@ -88,20 +88,19 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-
     --radius: 0.5rem;
+  }
 
-    *,
-    *::before,
-    *::after {
-      transition:
-        background-color 200ms ease,
-        color 200ms ease,
-        border-color 200ms linear,
-        box-shadow 200ms ease,
-        fill 200ms ease,
-        stroke 200ms ease;
-    }
+  *,
+  *::before,
+  *::after {
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      border-color 200ms linear,
+      box-shadow 200ms ease,
+      fill 200ms ease,
+      stroke 200ms ease;
   }
 
   .dark {

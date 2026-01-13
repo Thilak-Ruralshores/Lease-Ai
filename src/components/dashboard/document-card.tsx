@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Loader2, CheckCircle, XCircle, MoreVertical, Calendar, HardDrive, Trash2, Eye, Download } from "lucide-react";
-import { DocumentData } from "@/lib/dummy-data";
+import { FileText, Loader2, CheckCircle, XCircle, MoreVertical, Calendar, HardDrive, Trash2, Eye, Settings2, Check, ArrowRight, Lock } from "lucide-react";
+import { DocumentData, DocumentStatus } from "@/types/common.types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useKeywords } from "@/context/keyword-context";
 
 interface DocumentCardProps {
   document: DocumentData;
@@ -17,14 +18,16 @@ interface DocumentCardProps {
 export default function DocumentCard({ document, index, onDelete }: DocumentCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { confirmedDocIds } = useKeywords();
+  const isConfirmed = confirmedDocIds.includes(document.id);
 
-  const statusIcons = {
+  const statusIcons: Record<DocumentStatus, React.ReactNode> = {
     processing: <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />,
     ready: <CheckCircle className="w-5 h-5 text-green-500" />,
     failed: <XCircle className="w-5 h-5 text-red-500" />,
   };
 
-  const statusColors = {
+  const statusColors: Record<DocumentStatus, string> = {
     processing: "bg-amber-500/10 border-amber-500/20",
     ready: "bg-green-500/10 border-green-500/20",
     failed: "bg-red-500/10 border-red-500/20",
@@ -137,7 +140,7 @@ export default function DocumentCard({ document, index, onDelete }: DocumentCard
         <h3 className="font-semibold text-card-foreground truncate mb-1" title={document.name}>
           {document.name}
         </h3>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
             <div className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
                 {document.uploadedAt}
@@ -147,18 +150,46 @@ export default function DocumentCard({ document, index, onDelete }: DocumentCard
                 {document.size}
             </div>
         </div>
+
+        <div className="flex items-center justify-between">
+           <Link 
+              href={`/keywords?docId=${document.id}`}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
+           >
+              <Settings2 className="w-3.5 h-3.5" />
+              Choose Keywords
+           </Link>
+
+           {isConfirmed && (
+             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-600 dark:text-green-500 uppercase tracking-tight">
+               <Check className="w-2.5 h-2.5" />
+               Confirmed
+             </div>
+           )}
+        </div>
       </div>
 
       <div className="pt-4 border-t border-border flex items-center justify-between">
-         {document.status === "ready" ? (
+         {document.status === "ready" && isConfirmed ? (
              <Link 
                 href={`/extraction/${document.id}`}
-                className="text-sm font-medium text-primary hover:text-blue-700 transition-colors flex items-center gap-1"
+                className="text-sm font-semibold text-primary hover:text-blue-700 transition-all flex items-center gap-1 group/btn"
              >
                 View Extraction
+                <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
              </Link>
          ): (
-            <span className="text-sm text-muted-foreground cursor-not-allowed">View Extraction</span>
+            <div className="flex flex-col gap-1">
+               <span className="text-sm text-muted-foreground opacity-50 cursor-not-allowed flex items-center gap-1">
+                 View Extraction
+                 <Lock className="w-3.5 h-3.5" />
+               </span>
+               {!isConfirmed && document.status === "ready" && (
+                 <span className="text-[10px] text-amber-600 dark:text-amber-500 font-medium animate-pulse">
+                   Please confirm keywords first
+                 </span>
+               )}
+            </div>
          )}
       </div>
     </motion.div>
