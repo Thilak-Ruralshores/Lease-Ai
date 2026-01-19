@@ -1,6 +1,6 @@
 // lib/embeddings/embedChunks.ts
 import { embedWithOpenAI } from "./embedWithOpenAI";
-
+import { embedWithGemini } from "./embedWithGemini";
 export type EmbeddedChunk = {
   textEmbedding: number[];
   summaryEmbedding: number[];
@@ -13,8 +13,10 @@ export async function embedChunks(chunks: any[]) {
 
   // 2️⃣ Generate embeddings
   const [textEmbeddings, summaryEmbeddings] = await Promise.all([
-    embedWithOpenAI(rawTexts),
-    embedWithOpenAI(summaries),
+    // embedWithOpenAI(rawTexts),
+    // embedWithOpenAI(summaries),
+    embedWithGemini(rawTexts),
+    embedWithGemini(summaries),
   ]);
 
   // 3️⃣ Attach back deterministically

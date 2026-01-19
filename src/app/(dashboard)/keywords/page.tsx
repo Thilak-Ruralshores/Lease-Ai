@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import KeywordSection from "@/components/dashboard/keyword-section";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, CheckCircle2 } from "lucide-react";
@@ -12,8 +13,14 @@ export default function KeywordsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const docId = searchParams.get("docId");
-  const { confirmKeywords, activeCount } = useKeywords();
+  const { confirmKeywords, activeCount, fetchKeywords } = useKeywords();
   const { addToast } = useToast();
+
+  // Fetch keywords whenever the page is visited
+  useEffect(() => {
+    fetchKeywords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run on mount to ensure fresh data
 
   const handleConfirm = () => {
     if (docId) {

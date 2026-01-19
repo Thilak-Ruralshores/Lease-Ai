@@ -104,6 +104,20 @@ export default function KeywordSection({ isFullPage = false }: { isFullPage?: bo
         return;
       }
     }
+// 🔒 KEYWORD DUPLICATION CHECK (GLOBAL)
+const normalizedNewKeyword = newKeyword.trim().toLowerCase();
+
+const existingKeyword = keywords.find(
+  k => k.keyword.trim().toLowerCase() === normalizedNewKeyword
+);
+
+  if (existingKeyword) {
+    addToast(
+      `Keyword already exists in category "${existingKeyword.category}"`,
+      "error"
+    );
+    return;
+  }
 
     await addCustomKeyword(newKeyword.trim(), categoryToUse);
     setNewKeyword("");

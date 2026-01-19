@@ -1,12 +1,13 @@
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
+ 
 }
 
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 
@@ -19,4 +20,39 @@ model Keywords {
   createdAt DateTime @default(now())
 }
 
+enum ChunkType {
+  section
+  exhibit
+  other
+}
 
+enum TitleKind {
+   heading
+  exhibit
+  schedule
+  appendix
+  miscellaneous
+}
+
+model DocumentChunk {
+  id           String   @id @default(cuid())
+  document_id  String
+  document_name String? 
+  type         ChunkType
+  title        String?
+  title_kind   TitleKind?
+  page_start   Int?
+  page_end     Int?
+
+  text         String?
+  summary      String?
+
+  // pgvector columns
+  summary_embedding Unsupported("vector")?
+  text_embedding    Unsupported("vector")?
+
+  created_at  DateTime @default(now())
+
+  @@index([document_id])
+  @@index([type])
+}

@@ -93,7 +93,7 @@ export function KeywordProvider({ children }: { children: React.ReactNode }) {
     }
   }, [addToast]);
 
-  // Initial load
+  // Initial load - fetch keywords on mount
   useEffect(() => {
     fetchKeywords();
 
@@ -116,7 +116,8 @@ export function KeywordProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to load keyword selections", e);
       }
     }
-  }, [fetchKeywords]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const confirmKeywords = useCallback((docId: string) => {
     // Store the current activeIds for this specific document
