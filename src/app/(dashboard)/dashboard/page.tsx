@@ -14,6 +14,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Keyword } from "@/context/keyword-context";
 import { useKeywords } from "@/context/keyword-context";
+import { useAuth } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 const PAGE_SIZE = 6;
 
@@ -25,6 +28,7 @@ export default function DashboardPage() {
   const [loadMoreRef, isIntersecting] = useIntersectionObserver();
    const { activeKeywords, activeCount } = useKeywords();
    const { addToast } = useToast();
+   useAuthGuard();
 
   // Simulate initial fetch
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function DashboardPage() {
 
   const handleNewDocument = (document: DocumentData) => {
     setDocuments(prev => [...prev, document]);
-    addToast(`"${document.name}" has been uploaded`, "success");
+    // addToast(`"${document.name}" has been uploaded`, "success");
   };
 
   return (

@@ -15,7 +15,7 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  // const { refreshUser } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,22 +23,27 @@ export default function SignupPage() {
     setError("");
     setIsLoading(true);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name }),
+      });
 
-    if (!email.endsWith("@ruralshores.com")) {
-      setError("Please use your @ruralshores.com email address.");
-      setIsLoading(false);
-      return;
-    }
-     if (password.length < 6) {
-        setError("Password must be at least 6 characters.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Signup failed");
         setIsLoading(false);
         return;
-    }
+      }
 
-    // Redirect to login page
-    router.push("/login");
+      // Redirect to login with a success indicator or just message
+      router.push("/login?message=Account created successfully. Please sign in.");
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (

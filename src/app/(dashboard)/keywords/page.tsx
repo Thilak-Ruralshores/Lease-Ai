@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useKeywords } from "@/context/keyword-context";
 import { useToast } from "@/context/toast-context";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 export default function KeywordsPage() {
   const searchParams = useSearchParams();
@@ -15,7 +16,7 @@ export default function KeywordsPage() {
   const docId = searchParams.get("docId");
   const { confirmKeywords, activeCount, fetchKeywords } = useKeywords();
   const { addToast } = useToast();
-
+  useAuthGuard();
   // Fetch keywords whenever the page is visited
   useEffect(() => {
     fetchKeywords();

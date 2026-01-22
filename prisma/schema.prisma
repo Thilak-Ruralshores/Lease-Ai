@@ -56,3 +56,43 @@ model DocumentChunk {
   @@index([document_id])
   @@index([type])
 }
+
+// Admin and user management
+
+enum UserRole {
+  ORG_ADMIN
+  USER
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  domain      String  @unique        // required: company email domain
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  users       User[]
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String?
+  role            UserRole @default(USER)
+  status          UserStatus @default(PENDING)
+  passwordHash    String
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt       DateTime @default(now())
+  approvedAt      DateTime?
+  approvedById    String?      // admin who approved
+}

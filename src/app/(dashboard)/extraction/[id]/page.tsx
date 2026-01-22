@@ -10,13 +10,14 @@ import { DUMMY_EXTRACTIONS, DUMMY_DOCUMENTS, ExtractionData, INITIAL_KEYWORDS } 
 import { useToast } from "@/context/toast-context";
 import { useKeywords } from "@/context/keyword-context";
 import { motion } from "framer-motion";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 export default function ExtractionPage() {
   const params = useParams();
   const router = useRouter();
   const { addToast } = useToast();
   const id = params.id as string;
-
+  useAuthGuard();
   const [document, setDocument] = useState(DUMMY_DOCUMENTS.find((d: { id: string }) => d.id === id));
   const [data, setData] = useState<ExtractionData[]>([]);
   const [selectedField, setSelectedField] = useState<ExtractionData | null>(null);

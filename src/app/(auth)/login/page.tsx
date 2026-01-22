@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
@@ -13,29 +14,46 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const router = useRouter();
+// Inside your LoginPage component
+const { refreshUser,user, isLoading: authLoading } = useAuth(); // Assume useAuth provides user state
+
+useEffect(() => {
+  console.log(authLoading,'and',user)
+  // If the auth check is finished and a user exists, redirect immediately
+  if (!authLoading && user) {
+    router.replace("/dashboard");
+  }
+}, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!email.endsWith("@ruralshores.com")) {
-      setError("Please use your @ruralshores.com email address.");
-      setIsLoading(false);
-      return;
-    }
+      const data = await res.json();
 
-    if (password.length < 6) {
-        setError("Password must be at least 6 characters.");
+      if (!res.ok) {
+        setError(data.error || "Login failed");
         setIsLoading(false);
         return;
-    }
+      }
 
-    login(email);
+      // Refresh user context and redirect
+      await refreshUser();
+      console.log(`after refreshUser`)
+      router.replace("/dashboard",{scroll:true});
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (

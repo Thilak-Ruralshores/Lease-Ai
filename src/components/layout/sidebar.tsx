@@ -2,25 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FileText, Settings, Key, User, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, Key, User, LogOut, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const isAdmin = user?.role === "ORG_ADMIN";
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Keywords", href: "/keywords", icon: Key },
-    // { name: "My Documents", href: "/dashboard", icon: FileText },
-    // { name: "Settings", href: "/settings", icon: Settings },
+    ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Shield }] : []),
   ];
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border hidden md:flex flex-col">
       <div className="h-16 flex items-center px-6 border-b border-border">
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl text-primary">
+        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
             <Key className="w-5 h-5" />
           </div>

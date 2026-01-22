@@ -4,15 +4,20 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface User {
+  id: string;
   email: string;
-  name?: string;
+  name?: string | null;
+  role: string;
+  status: string;
+  organization: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => void;
-  logout: () => void;
+  setUser: (user: User | null) => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,33 +27,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check for "auth" cookie or local storage simulation
-    const storedUser = localStorage.getItem("dummy_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  const refreshUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (data.user) {
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, []);
-
-  const login = (email: string) => {
-    // Simulate setting a cookie
-    document.cookie = "auth-token=dummy-token; path=/; max-age=86400";
-    const newUser = { email, name: email.split("@")[0] };
-    localStorage.setItem("dummy_user", JSON.stringify(newUser));
-    setUser(newUser);
-    router.push("/dashboard");
   };
 
-  const logout = () => {
-    document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    localStorage.removeItem("dummy_user");
-    setUser(null);
-    router.push("/login"); // Redirect to login
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
+      router.replace("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, setUser, logout, isLoading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
