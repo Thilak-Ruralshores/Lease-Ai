@@ -66,11 +66,12 @@ function mapChunkType(type: string): ChunkType {
 export async function storeChunks(
   documentId: string,
   documentName: string,
+  userId: string,
   chunks: ChunkInput[]
 ): Promise<string> {
   // 1. Validate inputs
-  if (!documentId || !documentName) {
-    return "Error: documentId and documentName are required.";
+  if (!documentId || !documentName || !userId) {
+    return "Error: documentId, documentName and userId are required.";
   }
 
   if (!chunks || chunks.length === 0) {
@@ -92,6 +93,7 @@ export async function storeChunks(
           id: randomUUID(),
           document_id: documentId,
           document_name: documentName,
+          userId: userId,
           type: mapChunkType(chunk.type),
           title,
           title_kind,
@@ -119,11 +121,11 @@ export async function storeChunks(
 
             await tx.$executeRaw`
               INSERT INTO "DocumentChunk" (
-                "id", "document_id", "document_name", "type", "title", 
+                "id", "document_id", "document_name", "userId", "type", "title", 
                 "page_start", "page_end", "text", "summary", 
                 "summary_embedding", "text_embedding", "created_at"
               ) VALUES (
-                ${chunk.id}, ${chunk.document_id}, ${chunk.document_name}, ${chunk.type}::"ChunkType", ${chunk.title},
+                ${chunk.id}, ${chunk.document_id}, ${chunk.document_name}, ${chunk.userId}, ${chunk.type}::"ChunkType", ${chunk.title},
                 ${chunk.page_start}, ${chunk.page_end}, ${chunk.text}, ${chunk.summary},
                 ${summaryVector ? Prisma.sql`${summaryVector}::vector` : null}, 
                 ${textVector ? Prisma.sql`${textVector}::vector` : null}, 

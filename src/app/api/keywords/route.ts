@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import {prisma} from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 
 /**
  * GET: Fetch all keywords from the database
@@ -24,6 +25,11 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== 'ORG_ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { keyword, category } = body;
 

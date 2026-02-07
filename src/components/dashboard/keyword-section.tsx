@@ -8,21 +8,25 @@ import { Input } from "@/components/ui/input";
 import { categoryColors, cn } from "@/lib/utils";
 import { useKeywords, CATEGORIES, Keyword } from "@/context/keyword-context";
 import { useToast } from "@/context/toast-context";
+import { useAuth } from "@/context/auth-context";
 type CheckboxState = "checked" | "unchecked" | "indeterminate";
 // Custom Checkbox Component for 3 states
 const TriStateCheckbox = ({ 
   state, 
   onChange, 
-  className 
+  className,
+  disabled = false
 }: { 
   state: CheckboxState; 
- onChange: (nextState: "checked" | "unchecked") => void;
+  onChange: (nextState: "checked" | "unchecked") => void;
   className?: string;
+  disabled?: boolean;
 }) => {
   console.log(state,'is state')
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
+    if (disabled) return;
     if (state === "checked") {
       onChange("unchecked");
     } else {
@@ -34,10 +38,11 @@ const TriStateCheckbox = ({
     <div 
       onClick={(e) => {handleClick(e)}}
       className={cn(
-        "w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors",
+        "w-4 h-4 rounded border flex items-center justify-center transition-colors",
         state === "checked" || state === "indeterminate"
-          ? "bg-blue-600 border-blue-600 text-white" 
+          ? (disabled ? "bg-slate-300 border-slate-300 text-slate-500" : "bg-blue-600 border-blue-600 text-white")
           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         className
       )}
     >
@@ -62,6 +67,9 @@ export default function KeywordSection({ isFullPage = false }: { isFullPage?: bo
   } = useKeywords();
 
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ORG_ADMIN";
+
   const [searchQuery, setSearchQuery] = useState("");
   const [newKeyword, setNewKeyword] = useState("");
   const [selectedCustomCategory, setSelectedCustomCategory] = useState<string>(allCategories[0] || "");
@@ -173,10 +181,12 @@ const existingKeyword = keywords.find(
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">Extraction Keywords</h3>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={resetKeywords} className="text-xs h-7 text-muted-foreground hover:text-foreground cursor-pointer">
-              <RotateCcw className="w-3 h-3 mr-1" />
-              Reset
-            </Button>
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={resetKeywords} className="text-xs h-7 text-muted-foreground hover:text-foreground cursor-pointer">
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Reset
+              </Button>
+            )}
             <span className={cn(
               "text-xs px-2.5 py-1 rounded-full font-medium transition-colors border",
               activeCount > 0 
@@ -267,6 +277,7 @@ const existingKeyword = keywords.find(
                     <TriStateCheckbox 
                       state={getCategoryState(category)} 
                       onChange={(nextState) => toggleCategory(category, nextState)}
+                      disabled={!isAdmin}
                     />
                     <div className="flex flex-col">
                         <span className="font-medium text-sm text-slate-800 dark:text-slate-200 select-none">
@@ -312,6 +323,7 @@ const existingKeyword = keywords.find(
                                   state={keyword.isActive ?  "checked" : "unchecked"} 
                                 onChange={(nextState) => toggleKeyword(keyword.id, nextState)}
                                 className={cn("w-3.5 h-3.5", keyword.isActive ? "" : "border-slate-300")}
+                                disabled={!isAdmin}
                             />
                             <span className={cn(
                               "text-xs leading-tight",
@@ -348,63 +360,65 @@ const existingKeyword = keywords.find(
       </div>
 
       {/* Footer: Custom Keyword */}
-      <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-xl">
-        <label className="text-xs font-semibold text-muted-foreground mb-2 block">Add Custom Keyword</label>
-        <div className="flex flex-col gap-2">
-            <Input
-                placeholder="Keyword name..."
-                value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
-                className="h-8 text-sm bg-white dark:bg-slate-950"
-            />
-            {isAddingNewCategory ? (
-              <div className="animate-in slide-in-from-top-1 duration-200">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="New category name..."
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="h-8 text-xs bg-white dark:bg-slate-950 flex-1"
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsAddingNewCategory(false)}
-                    className="h-8 px-2 text-xs text-muted-foreground cursor-pointer"
-                  >
-                    Cancel
-                  </Button>
+      {isAdmin && (
+        <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-xl">
+          <label className="text-xs font-semibold text-muted-foreground mb-2 block">Add Custom Keyword</label>
+          <div className="flex flex-col gap-2">
+              <Input
+                  placeholder="Keyword name..."
+                  value={newKeyword}
+                  onChange={(e) => setNewKeyword(e.target.value)}
+                  className="h-8 text-sm bg-white dark:bg-slate-950"
+              />
+              {isAddingNewCategory ? (
+                <div className="animate-in slide-in-from-top-1 duration-200">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="New category name..."
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="h-8 text-xs bg-white dark:bg-slate-950 flex-1"
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setIsAddingNewCategory(false)}
+                      className="h-8 px-2 text-xs text-muted-foreground cursor-pointer"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <select 
-                    className="flex-1 h-8 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs px-2"
-                    value={selectedCustomCategory}
-                    onChange={(e) => {
-                      if (e.target.value === "ADD_NEW") {
-                        setIsAddingNewCategory(true);
-                      } else {
-                        setSelectedCustomCategory(e.target.value);
-                      }
-                    }}
-                >
-                    {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                    <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Category</option>
-                </select>
-              </div>
-            )}
-            <Button 
-                onClick={handleAddCustom} 
-                size="sm" 
-                className="h-8 gap-1 w-full cursor-pointer" 
-                disabled={!newKeyword.trim() || (isAddingNewCategory ? !newCategoryName.trim() : !selectedCustomCategory) || isLoading}
-            >
-                <Plus className="w-3.5 h-3.5" />
-                {isAddingNewCategory ? "Add Keyword to New Category" : "Add Keyword"}
-            </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <select 
+                      className="flex-1 h-8 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs px-2"
+                      value={selectedCustomCategory}
+                      onChange={(e) => {
+                        if (e.target.value === "ADD_NEW") {
+                          setIsAddingNewCategory(true);
+                        } else {
+                          setSelectedCustomCategory(e.target.value);
+                        }
+                      }}
+                  >
+                      {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="ADD_NEW" className="font-bold text-blue-600">+ Add New Category</option>
+                  </select>
+                </div>
+              )}
+              <Button 
+                  onClick={handleAddCustom} 
+                  size="sm" 
+                  className="h-8 gap-1 w-full cursor-pointer" 
+                  disabled={!newKeyword.trim() || (isAddingNewCategory ? !newCategoryName.trim() : !selectedCustomCategory) || isLoading}
+              >
+                  <Plus className="w-3.5 h-3.5" />
+                  {isAddingNewCategory ? "Add Keyword to New Category" : "Add Keyword"}
+              </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

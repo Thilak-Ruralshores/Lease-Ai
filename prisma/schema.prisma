@@ -15,9 +15,14 @@ model Keywords {
   id         String     @id @default(cuid())
   keyword    String
   category   String
+  query        String?                     // normalized / expanded query text
+  query_emb    Unsupported("vector")?     // pgvector embedding
   isCustom   Boolean    @default(false)
   isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([category])
+  @@index([keyword])
 }
 
 enum ChunkType {
@@ -38,6 +43,8 @@ model DocumentChunk {
   id           String   @id @default(cuid())
   document_id  String
   document_name String? 
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type         ChunkType
   title        String?
   title_kind   TitleKind?
@@ -91,7 +98,7 @@ model User {
 
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
-
+  documentChunks  DocumentChunk[]   
   createdAt       DateTime @default(now())
   approvedAt      DateTime?
   approvedById    String?      // admin who approved

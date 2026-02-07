@@ -117,33 +117,33 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
         onUploadComplete(documentObject);
         setTimeout(()=>addToast("Document processed successfully", "success"),2000)
         
-        // const res = await fetch("/api/upload", {
-        //   method: "POST",
-        //   body: formData,
-        // });
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-        // if (!res.ok) {
-        //   addToast(`Upload failed: ${res.statusText}`, "error");
-        //   return;
-        // }
+        if (!res.ok) {
+          addToast(`Upload failed: ${res.statusText}`, "error");
+          return;
+        }
 
-        // const { jobId } = await res.json();
+        const { jobId } = await res.json();
         
         // Initialize job state locally for immediate feedback
-        // setJobState({
-        //   jobId,
-        //   fileName: file.name,
-        //   currentStage: "Parsing",
-        //   stages: {
-        //     Parsing: { status: "pending", retryCount: 0 },
-        //     Chunking: { status: "pending", retryCount: 0 },
-        //     Summarizing: { status: "pending", retryCount: 0 },
-        //     Embedding: { status: "pending", retryCount: 0 },
-        //     Storing: { status: "pending", retryCount: 0 },
-        //   },
-        // });
-        // setIsModalOpen(true);
-        // startTracking(jobId, file);
+        setJobState({
+          jobId,
+          fileName: file.name,
+          currentStage: "Parsing",
+          stages: {
+            Parsing: { status: "pending", retryCount: 0 },
+            Chunking: { status: "pending", retryCount: 0 },
+            Summarizing: { status: "pending", retryCount: 0 },
+            Embedding: { status: "pending", retryCount: 0 },
+            Storing: { status: "pending", retryCount: 0 },
+          },
+        });
+        setIsModalOpen(true);
+        startTracking(jobId, file);
       };
       input.click();
     } catch (error) {

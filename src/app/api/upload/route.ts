@@ -6,6 +6,8 @@ import { randomUUID } from "crypto";
 import { storeChunks } from "@/lib/storing/storeChunks";
 import { uploadManager } from "@/lib/upload-manager";
 import { UploadStage } from "@/lib/upload-types";
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 // Helper for retry logic
 async function withRetry<T>(
@@ -29,47 +31,85 @@ async function withRetry<T>(
 
 export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get("jobId");
-  if (!jobId) {
-    return NextResponse.json({ error: "Missing jobId" }, { status: 400 });
-  }
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    start(controller) {
-      const onUpdate = (update: any) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(update)}\n\n`));
-        if (update.finalStatus) {
+  if (jobId) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        const onUpdate = (update: any) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(update)}\n\n`));
+          if (update.finalStatus) {
+            uploadManager.off(`update:${jobId}`, onUpdate);
+            controller.close();
+          }
+        };
+
+        uploadManager.on(`update:${jobId}`, onUpdate);
+
+        // Send current state immediately if job exists
+        const job = uploadManager.getJob(jobId);
+        if (job) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(job)}\n\n`));
+        }
+
+        req.signal.addEventListener("abort", () => {
           uploadManager.off(`update:${jobId}`, onUpdate);
           controller.close();
-        }
-      };
+        });
+      },
+    });
 
-      uploadManager.on(`update:${jobId}`, onUpdate);
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  }
 
-      // Send current state immediately if job exists
-      const job = uploadManager.getJob(jobId);
-      if (job) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(job)}\n\n`));
-      }
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-      req.signal.addEventListener("abort", () => {
-        uploadManager.off(`update:${jobId}`, onUpdate);
-        controller.close();
-      });
-    },
-  });
+    // Use Prisma to find distinct documents for this user
+    const documents = await prisma.documentChunk.groupBy({
+      by: ['document_id', 'document_name'],
+      where: {
+        userId: session.userId,
+      },
+      _max: {
+        created_at: true,
+      },
+      orderBy: {
+        _max: {
+          created_at: 'desc',
+        },
+      },
+    });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+    const result = documents.map(doc => ({
+      id: doc.document_id,
+      name: doc.document_name,
+      createdAt: doc._max!.created_at,
+    }));
+
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("Fetch documents error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
     if (!file) return NextResponse.json({ error: "File missing" }, { status: 400 });
@@ -83,7 +123,7 @@ export async function POST(req: NextRequest) {
     const fileType = file.type;
 
     // Start processing in the background
-    processUpload(jobId, buffer, fileName, fileType).catch(err => {
+    processUpload(jobId, buffer, fileName, fileType, session.userId).catch(err => {
       console.error(`Background processing failed for ${jobId}:`, err);
     });
 
@@ -94,7 +134,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function processUpload(jobId: string, buffer: ArrayBuffer, fileName: string, fileType: string) {
+async function processUpload(jobId: string, buffer: ArrayBuffer, fileName: string, fileType: string, userId: string) {
   try {
     const fileBlob = new Blob([buffer], { type: fileType });
 
@@ -110,7 +150,7 @@ async function processUpload(jobId: string, buffer: ArrayBuffer, fileName: strin
           method: "POST",
           body: fastApiForm,
         });
-
+        
         if (!fastApiResponse.ok) {
           const errorText = await fastApiResponse.text();
           throw new Error(`Parsing failed: ${fastApiResponse.status} ${errorText}`);
@@ -159,8 +199,8 @@ async function processUpload(jobId: string, buffer: ArrayBuffer, fileName: strin
       sampleChunk: chunks[0]
     });
 
-    // 3. Summarizing (with proper error handling for rate limits)
-    let summarizedChunks;
+    // 3. Summarizing
+    let summarizedChunks:any =[];
     try {
       uploadManager.updateStage(jobId, "Summarizing", "in-progress");
       console.log(`[${jobId}] Starting summarization...`);
@@ -179,7 +219,7 @@ async function processUpload(jobId: string, buffer: ArrayBuffer, fileName: strin
     }
 
     // 4. Embedding (with proper error handling for rate limits)
-    let embeddedChunks;
+    let embeddedChunks:any =[];
     try {
       uploadManager.updateStage(jobId, "Embedding", "in-progress");
       console.log(`[${jobId}] Starting embedding...`);
@@ -200,7 +240,7 @@ async function processUpload(jobId: string, buffer: ArrayBuffer, fileName: strin
       async () => {
         uploadManager.updateStage(jobId, "Storing", "in-progress");
         const documentId = randomUUID();
-        await storeChunks(documentId, fileName, embeddedChunks);
+        await storeChunks(documentId, fileName, userId, embeddedChunks);
       },
       (count) => uploadManager.updateStage(jobId, "Storing", "retrying", `Retry ${count}/2`, count)
     );

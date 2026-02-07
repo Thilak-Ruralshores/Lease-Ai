@@ -1,0 +1,13 @@
+I see chunks are created but the embeddings are created in ollama 
+only after chunking the chunks as local model has context window limit
+
+For now i am to use ollama but in production am to use openai for embeddings
+So it has relatively bigger context length but i see i can apply recursivecharacterlength to 
+split and it preserves legal flow from chunk and its effective . I will retain parts of chunk
+by index of parent chunk.
+
+Place different parts of chunk in different  rows of table but group by parent chunk index
+
+Even if 1 part is found to be semantic we will retrieve all clause...For now i am not placing in different rows of table
+but as single row in table
+

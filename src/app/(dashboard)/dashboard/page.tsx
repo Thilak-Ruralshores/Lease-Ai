@@ -30,27 +30,25 @@ export default function DashboardPage() {
    const { addToast } = useToast();
    useAuthGuard();
 
-  // Simulate initial fetch
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDocuments(DUMMY_DOCUMENTS.slice(0, PAGE_SIZE));
-      setIsLoading(false);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Simulate infinite scroll
-  useEffect(() => {
-    if (isIntersecting && !isLoading && documents.length < DUMMY_DOCUMENTS.length) {
+  const fetchDocuments = useCallback(async () => {
+    try {
       setIsLoading(true);
-      setTimeout(() => {
-        const nextDocs = DUMMY_DOCUMENTS.slice(0, (page + 1) * PAGE_SIZE);
-        setDocuments(nextDocs);
-        setPage((p) => p + 1);
-        setIsLoading(false);
-      }, 0);
+      const res = await fetch("/api/upload");
+      if (!res.ok) throw new Error("Failed to fetch documents");
+      const data = await res.json();
+      setDocuments(data);
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+      addToast("Failed to load documents", "error");
+    } finally {
+      setIsLoading(false);
     }
-  }, [isIntersecting, isLoading, page, documents.length]);
+  }, [addToast]);
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   const handleDeleteDocument = useCallback((id: string) => {
     const docToDelete = documents.find(d => d.id === id);
